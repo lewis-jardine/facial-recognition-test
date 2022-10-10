@@ -2,6 +2,28 @@ import numpy as np
 import cv2
 import face_recognition
 import os
+import threading
+
+# Create bufferless vid capture object
+class VideoCapture:
+
+    def __init__(self, name):
+        self.cap = cv2.VideoCapture(name)
+        self.t = threading.Thread(target=self._reader)
+        self.t.daemon = True
+        self.t.start()
+
+    # grab frames as soon as they are available
+    def _reader(self):
+        while True:
+            ret = self.cap.grab()
+            if not ret:
+                break
+
+    # retrieve latest frame
+    def read(self):
+        ret, frame = self.cap.retrieve()
+        return frame
 
 # Load trained images
 trained_path = "./trained_images/"
@@ -25,17 +47,17 @@ for image_path in os.listdir(trained_path):
   trained_images_names.append(name)
 
 # Get rtsp stream
-vid = cv2.VideoCapture("rtsp://192.168.1.86:8554/cam")
-unkown_count = 1
+vid = VideoCapture("rtsp://192.168.1.86:8554/cam")
 
+unkown_count = 1
 while(True):
 
   face_names = []
 
-    # Capture vid frame by frame
-  ret, frame = vid.read()
+  # Capture vid frame by frame
+  frame = vid.read()
 
-    # If frames been read ok
+  # If frames been read ok
   if frame is not None: 
 
     # Find location of faces in frame, encode those
@@ -46,6 +68,7 @@ while(True):
     for face_encoding in unkown_image_encoding:
 
       # Find if face is a match to known faces
+      print("unkown matched")
       matches = face_recognition.compare_faces(trained_images, face_encoding)
       name = "unkown"
 
